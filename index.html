@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>コラボパネル設置場所マップ｜ラブライブ！シリーズ × ラブナゴヤ！フェス</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--pink:#e4007f;--pink-soft:#fde6f2;--ink:#2b2233;--sub:#6b6075;--line:#ece4ef;--bg:#fbf8fc}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:"M PLUS Rounded 1c",system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+  header{padding:14px 18px 10px;background:#fff;border-bottom:3px solid var(--pink)}
+  header h1{margin:0;font-size:clamp(16px,2.4vw,22px);font-weight:800;line-height:1.35}
+  header h1 small{display:block;font-size:12px;font-weight:700;color:var(--pink);letter-spacing:.04em}
+  header p{margin:4px 0 0;font-size:12.5px;color:var(--sub)}
+  .app{display:grid;grid-template-columns:360px 1fr;height:calc(100% - var(--hh,86px))}
+  aside{display:flex;flex-direction:column;border-right:1px solid var(--line);background:#fff;min-height:0}
+  .controls{padding:12px 14px;border-bottom:1px solid var(--line)}
+  .search{width:100%;padding:9px 12px;border:1.5px solid var(--line);border-radius:10px;font:inherit;font-size:14px}
+  .search:focus{outline:none;border-color:var(--pink)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .chip{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;color:var(--ink)}
+  .chip .dot{width:9px;height:9px;border-radius:50%}
+  .chip[aria-pressed="false"]{opacity:.38}
+  .row{display:flex;gap:12px;align-items:center;margin-top:10px;font-size:12.5px;flex-wrap:wrap}
+  .row label{display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+  .row button{font:inherit;font-size:12px;border:none;background:none;color:var(--pink);cursor:pointer;padding:0;text-decoration:underline}
+  .count{font-size:12px;color:var(--sub);padding:8px 14px 4px}
+  ul.list{list-style:none;margin:0;padding:0 8px 12px;overflow:auto;flex:1;min-height:0}
+  ul.list li{padding:8px 10px;border-radius:10px;cursor:pointer;display:grid;grid-template-columns:40px 1fr;gap:10px;align-items:center}
+  ul.list li:hover,ul.list li.active{background:var(--pink-soft)}
+  .lthumb{width:40px;height:40px;border-radius:50%;border:3px solid;background:#f4eef6 center/cover no-repeat;display:grid;place-items:center;color:#fff;font-weight:800;font-size:13px}
+  .nm{font-weight:700;font-size:14px;line-height:1.35}
+  .br{font-size:11.5px;color:var(--sub)}
+  .tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+  .tag{font-size:10.5px;padding:1px 7px;border-radius:999px;background:#f2edf4;color:var(--sub);font-weight:700}
+  .tag.stamp{background:var(--pink);color:#fff}
+  .tag.small{background:#fff4d6;color:#8a6200}
+  .tag.nov{background:#e6f0ff;color:#1b4fa0}
+  .pp .nov{font-size:12px;background:#eef4ff;border-radius:6px;padding:6px 8px;margin:6px 0;line-height:1.5}
+  .rally{font-size:12px;background:var(--pink-soft);border-radius:8px;padding:7px 10px;margin-top:10px;line-height:1.55}
+  #mapwrap{position:relative}
+  #map{height:100%;width:100%}
+  .mapTabs{position:absolute;z-index:1000;top:10px;left:50%;transform:translateX(-50%);display:flex;background:#fff;border:1.5px solid var(--pink);border-radius:999px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+  .mapTabs button{font:inherit;font-size:12px;font-weight:700;border:none;background:#fff;color:var(--pink);padding:6px 14px;cursor:pointer;white-space:nowrap}
+  .mapTabs button[aria-selected="true"]{background:var(--pink);color:#fff}
+  #mymap{position:absolute;inset:0;width:100%;height:100%;border:0;display:none;background:#fff}
+  #mapwrap.official #mymap{display:block}
+  .banner{position:absolute;z-index:999;left:10px;bottom:24px;background:#fff;border:1.5px solid var(--pink);border-radius:10px;padding:6px 12px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.15);max-width:90%}
+
+  /* ---- サムネイル付きマーカー（Google / Leaflet 共通） ---- */
+  .mk{position:relative;width:48px;height:56px;cursor:pointer;transition:transform .15s}
+  .mk:hover{transform:scale(1.12);z-index:10}
+  .mk .ring{position:absolute;left:0;top:0;width:48px;height:48px;border-radius:50%;border:4px solid;background:#fff;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.35);display:grid;place-items:center}
+  .mk .ring img{width:100%;height:100%;object-fit:cover;display:block}
+  .mk .ring .fb{color:#fff;font-weight:800;font-size:14px;width:100%;height:100%;display:grid;place-items:center}
+  .mk .tail{position:absolute;left:50%;top:44px;transform:translateX(-50%);width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:12px solid}
+  /* 画像は無いがキャラクター名がある店：名前入りの吹き出し型ピン */
+  .mk .pill{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis;color:#fff;font-weight:800;font-size:12px;line-height:1;padding:7px 10px;border-radius:999px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+  .mk .pill .more{margin-left:4px;font-size:10px;background:rgba(255,255,255,.3);border-radius:999px;padding:1px 5px}
+  .mk.lbl .tail{top:auto;bottom:0}
+  .mk .pill .pstar{color:#ffe14d;margin-right:3px}
+  .mk .star{position:absolute;right:-4px;top:-4px;background:var(--pink);color:#fff;border:2px solid #fff;border-radius:50%;width:20px;height:20px;font-size:11px;display:grid;place-items:center;font-weight:800}
+
+  /* ---- 吹き出し ---- */
+  .pp{font-family:"M PLUS Rounded 1c",sans-serif;min-width:210px;max-width:260px}
+  .pp .hero{width:100%;max-height:170px;object-fit:contain;background:#f6f1f8;border-radius:8px;margin-bottom:8px;display:block}
+  .pp h3{margin:0 0 2px;font-size:15px}
+  .pp .br{margin-bottom:6px}
+  .pp .addr{font-size:12px;margin:6px 0}
+  .pp .note{font-size:11.5px;color:#8a3b00;background:#fff4e8;border-radius:6px;padding:5px 7px;margin:6px 0}
+  .pp a.gm{display:inline-block;margin-top:6px;background:var(--pink);color:#fff;text-decoration:none;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:700}
+  .leaflet-popup-content{margin:12px 14px}
+  .foot{font-size:11px;color:var(--sub);padding:10px 14px;border-top:1px solid var(--line);line-height:1.6}
+  .foot a{color:var(--pink)}
+  @media (max-width:760px){
+    .app{grid-template-columns:1fr;height:auto}
+    #mapwrap{order:-1;height:55vh}
+    aside{border-right:none}
+    ul.list{overflow:visible}
+  }
+</style>
+</head>
+<body>
+<header id="hdr">
+  <h1><small>『ラブライブ！シリーズ』×「ラブナゴヤ！フェス」Welcome to Nagoya!</small>コラボパネル設置場所マップ</h1>
+  <p>開催期間：2026年11月6日(金)〜12月6日(日)　｜　ピンをタップすると詳細とGoogleマップへのリンクが出ます</p>
+</header>
+
+<div class="app">
+  <aside>
+    <div class="controls">
+      <input class="search" id="q" type="search" placeholder="店舗名・エリアで検索（例：栄、名駅、矢場とん）">
+      <div class="chips" id="chips"></div>
+      <div class="row">
+        <label><input type="checkbox" id="stampOnly"> スタンプラリー対象のみ</label>
+        <label><input type="checkbox" id="novOnly"> ノベルティカード配布店のみ</label>
+        <button id="allOn">すべて表示</button>
+        <button id="allOff">すべて解除</button>
+      </div>
+      <div class="rally">🔖 <b>スタンプラリー</b>：スタンプ15個で KVポストカードと交換（金山駅旅行センター 10:00〜18:30）。台紙は2,500円・全7種・アクリルスタンド付き（現金のみ、名駅地下支店・金山駅旅行センターで販売）。</div>
+    </div>
+    <div class="count" id="count"></div>
+    <ul class="list" id="list"></ul>
+    <div class="foot">
+      出典：<a href="https://www.mwt.co.jp/kokunai/chubu/special/lovelive2026/" target="_blank" rel="noopener">名鉄観光サービス 特設ページ</a>。
+      ピン位置は住所などから付けたおおよその位置です。来店前に<a href="https://www.google.com/maps/d/u/1/viewer?mid=1gvdgaUiNzDugl8GMDz6dLPA-JiHM5l4&hl=ja" target="_blank" rel="noopener">公式Googleマイマップ</a>や各店の営業時間・休業日をご確認ください。
+      ノベルティ・コラボ商品は数量限定です。
+    </div>
+  </aside>
+  <div id="mapwrap">
+    <div id="map"></div>
+    <div class="mapTabs" role="tablist">
+      <button role="tab" id="tabOwn" aria-selected="true">サムネイル付きマップ</button>
+      <button role="tab" id="tabOfficial" aria-selected="false">公式Googleマイマップ</button>
+    </div>
+  </div>
+</div>
+
+<script src="config.local.js"></script>
+<script>
+/* =====================================================================
+   設定
+   ===================================================================== */
+// Google Maps の APIキー。空のままだと OpenStreetMap（Leaflet）で表示します。
+// キーはリポジトリに入れない。
+//  - 本番：Cloudflare Pages のビルドで "__GOOGLE_MAPS_API_KEY__" を環境変数の値に置き換える
+//  - ローカル：config.local.js（git管理外）に window.LOCAL_CONFIG = {GOOGLE_MAPS_API_KEY:"..."} を書く
+const GOOGLE_MAPS_API_KEY = (window.LOCAL_CONFIG && window.LOCAL_CONFIG.GOOGLE_MAPS_API_KEY)
+  || ("__GOOGLE_MAPS_API_KEY__".startsWith("__") ? "" : "__GOOGLE_MAPS_API_KEY__");
+// Google Cloud コンソールで作った Map ID（サムネイル付きピンに必須）。
+// 動作確認だけなら "DEMO_MAP_ID" のままで動きます。
+const GOOGLE_MAP_ID = "DEMO_MAP_ID";
+// キャラクター画像の置き場所と拡張子。images/<id>.jpg を自動で読みに行きます。
+const IMAGE_DIR = "images/";
+const IMAGE_EXT = ".jpg";
+// false にすると画像を一切使わず、キャラクター名のラベルピンで表示します。
+// URL の末尾に ?images=0 / ?images=1 を付けると、この設定より優先して切り替えられます（見比べる用）。
+const USE_IMAGES = true;
+// 店舗ごとの画像が無いときは、事業者共通の画像 images/brand/<キー>.jpg を使います。
+const BRAND_IMG = {
+  "名鉄観光サービス":"mwt","アオキーズ・ピザ":"aokis","青柳総本家":"aoyagi","えびせんべいの里":"ebisato",
+  "きよめ餅総本家":"kiyome","香源":"kohgen","側島製罐":"sobajima","FUJIなごや科学館":"kagakukan",
+  "名古屋観光コンベンションビューロー":"conv","ひつまぶし う家":"uya","妙香園":"myokoen","名鉄協商":"mekyopa",
+  "名鉄生活創研":"nagomiya","矢場とん":"yabaton","山本屋":"yamamotoya","若鯱家":"wakashachiya"
+};
+// 事業者ごとのコラボキャラクター（公式キービジュアルより）。店舗に chara の指定が無いときに使います。
+// 店舗の chara は文字列でも配列でも可（文字列で複数人書くときは「、」区切り）
+// ※店舗ごとのパネルの絵柄とは限りません（矢場とんは全3デザイン、山本屋は店舗ごとに異なるなど）
+const BRAND_CHARA = {
+  "名鉄観光サービス":["集合ビジュアル"],
+  "アオキーズ・ピザ":["西木野真姫","桂城泉"],
+  "青柳総本家":["高坂穂乃果","天王寺璃奈","ウィーン・マルガレーテ"],
+  "えびせんべいの里":["麻布麻衣","百生吟子"],
+  "きよめ餅総本家":["駒形花火","三船栞子","椿ルリカ"],
+  "香源":["此花輝夜","桜内梨子","小泉花陽"],
+  "側島製罐":["高海千歌"],
+  "FUJIなごや科学館":["若菜四季"],
+  "名古屋観光コンベンションビューロー":["矢澤にこ"],
+  "ひつまぶし う家":["金澤奇跡","セラス 柳田 リリエンフェルト"],
+  "妙香園":["国木田花丸","村野さやか","平安名すみれ"],
+  "名鉄協商":["中須かすみ"],
+  "名鉄生活創研":["大沢瑠璃乃"],
+  "矢場とん":["唐可可","渡辺曜"],
+  "山本屋":["近江彼方","高橋ポルカ","鬼塚夏美","滝沢アンズ"],
+  "若鯱家":["星空凛","桜坂しずく"]
+};
+// 「公式Googleマイマップ」タブで埋め込むマイマップ（APIキー不要）
+const OFFICIAL_MYMAP_MID = "1gvdgaUiNzDugl8GMDz6dLPA-JiHM5l4";
+
+/* =====================================================================
+   データ
+   ===================================================================== */
+const BRANDS = {
+  "名鉄観光サービス":"#e4007f","アオキーズ・ピザ":"#e8380d","青柳総本家":"#2e9d5b","えびせんべいの里":"#f08300",
+  "きよめ餅総本家":"#8a6bbe","香源":"#7b4b2a","側島製罐":"#4a6fa5","FUJIなごや科学館":"#0097c4",
+  "名古屋観光コンベンションビューロー":"#1b5fbf","ひつまぶし う家":"#5b3a1e","妙香園":"#5a8f29","名鉄協商":"#c2185b",
+  "名鉄生活創研":"#d4a017","矢場とん":"#111111","山本屋":"#b5121b","若鯱家":"#d97706"
+};
+const BRAND_NOTES = {
+  "矢場とん":"パネルは全3デザイン",
+  "山本屋":"パネルまたはウォールステッカー（店舗ごとにデザインが異なります）",
+  "青柳総本家":"すべて小パネル"
+};
+
+// id … 画像ファイル名（images/<id>.jpg）。chara … 吹き出しに出すキャラクター名（任意）。
+// img … 個別に画像URLを指定したいときだけ書く（id規則より優先）。
+// stamp: スタンプラリー対象 / small: 小パネル / approx: 推定位置
+const SPOTS = [
+  {id:"mwt-meieki",      b:"名鉄観光サービス", n:"名駅地下支店", lat:35.1702, lng:136.8848, stamp:true, area:"名駅", approx:true},
+  {id:"mwt-kanayama",    b:"名鉄観光サービス", n:"金山駅旅行センター", lat:35.1427, lng:136.9001, stamp:true, area:"金山", approx:true},
+
+  {id:"aokis-ikeshita",  b:"アオキーズ・ピザ", n:"池下店", lat:35.1683, lng:136.9452, stamp:true, area:"千種区", addr:"名古屋市千種区池下1-4-23"},
+  {id:"aokis-nakamurakoen", b:"アオキーズ・ピザ", n:"中村公園店", lat:35.1681, lng:136.8612, stamp:true, small:true, area:"中村区", approx:true},
+  {id:"aokis-sakae",     b:"アオキーズ・ピザ", n:"栄店", lat:35.1631, lng:136.8978, small:true, area:"中区", addr:"名古屋市中区栄1-30-23"},
+  {id:"aokis-doko",      b:"アオキーズ・ピザ", n:"土古店", lat:35.1190, lng:136.8540, small:true, area:"港区", approx:true},
+  {id:"aokis-oe",        b:"アオキーズ・ピザ", n:"大江店", lat:35.1080, lng:136.9085, small:true, area:"南区", approx:true},
+
+  {id:"aoyagi-kitte",    b:"青柳総本家", n:"KITTE名古屋店", lat:35.1716, lng:136.8828, stamp:true, small:true, area:"名駅", note:"パネルはすべて小パネル"},
+  {id:"ebisato-nagaya",  b:"えびせんべいの里", n:"あつたnagAya店", lat:35.1262, lng:136.9068, stamp:true, area:"熱田", approx:true},
+  {id:"kiyome-jingumae", b:"きよめ餅総本家", n:"名鉄神宮前駅前店", lat:35.1244, lng:136.9118, stamp:true, area:"熱田", approx:true},
+  {id:"kohgen-nagoya",   b:"香源", n:"名古屋本店", lat:35.1697, lng:136.8688, stamp:true, area:"中村区", addr:"名古屋市中村区大秋町4-47（地下鉄本陣駅4番出口から徒歩約8分）"},
+  {id:"sobajima-shop",   b:"側島製罐", n:"SOBAJIMA shop", lat:35.1830, lng:136.8240, stamp:true, area:"大治町", approx:true,
+    note:"平日営業・土日祝は原則休業。11月の臨時営業日：7日(土)・14日(土)・15日(日)・21日(土)"},
+  {id:"kagakukan",       b:"FUJIなごや科学館", n:"生命館地下2階「あいち・なごや ノーベル賞受賞者記念室」", lat:35.1650, lng:136.8994, stamp:true, area:"伏見"},
+  {id:"conv-oasis21",    b:"名古屋観光コンベンションビューロー", n:"オアシス21 iセンター", lat:35.1707, lng:136.9101, stamp:true, area:"栄"},
+  {id:"conv-kanayama",   b:"名古屋観光コンベンションビューロー", n:"名古屋市金山観光案内所", lat:35.1433, lng:136.9010, stamp:true, area:"金山"},
+  {id:"uya-yagoto",      b:"ひつまぶし う家", n:"八事本店", lat:35.1372, lng:136.9640, stamp:true, area:"八事", approx:true},
+  {id:"uya-meieki",      b:"ひつまぶし う家", n:"名駅店", lat:35.1688, lng:136.8862, stamp:true, area:"名駅", addr:"名古屋市中村区名駅4-4-16 かに家ビル1F"},
+  {id:"myokoen-honten",  b:"妙香園", n:"本店", lat:35.1392, lng:136.9050, stamp:true, area:"熱田", addr:"名古屋市熱田区沢上2-1-44"},
+  {id:"myokoen-sunroad", b:"妙香園", n:"サンロード店", lat:35.1697, lng:136.8856, stamp:true, area:"名駅", addr:"名古屋市中村区名駅4-7-25 名駅地下街サンロード"},
+  {id:"myokoen-sakaechika", b:"妙香園", n:"サカエチカ店", lat:35.1692, lng:136.9078, stamp:true, area:"栄", addr:"名古屋市中区栄3-4-6 サカエチカ"},
+  {id:"myokoen-nagaya",  b:"妙香園", n:"あつたnagAya店", lat:35.1265, lng:136.9072, area:"熱田", approx:true},
+  {id:"mekyopa",         b:"名鉄協商", n:"めきょぱセンター", lat:35.1677, lng:136.9093, stamp:true, area:"栄", addr:"名古屋市中区栄3-5-12先 森の地下街南四番街（栄駅15番出口横）"},
+  {id:"nagomiya-esca",   b:"名鉄生活創研", n:"なごみゃ エスカ店", lat:35.1694, lng:136.8797, stamp:true, area:"名駅", addr:"名古屋駅地下街エスカ"},
+  {id:"yabaton-shop",    b:"矢場とん", n:"YABATON SHOP", lat:35.1613, lng:136.9058, stamp:true, area:"大須", addr:"名古屋市中区大須3-6-13"},
+  {id:"yabaton-lachic",  b:"矢場とん", n:"栄LACHIC店", lat:35.1683, lng:136.9068, area:"栄", addr:"名古屋市中区栄3-6-1 ラシック"},
+  {id:"yabaton-centrise",b:"矢場とん", n:"栄セントライズ店", lat:35.1686, lng:136.9047, area:"栄", addr:"名古屋市中区栄3-3-21 セントライズ栄"},
+  {id:"yabaton-kinshachi", b:"矢場とん", n:"名古屋城金シャチ横丁店", lat:35.1832, lng:136.8992, area:"名古屋城", approx:true},
+  {id:"yabaton-esca",    b:"矢場とん", n:"名古屋駅エスカ店", lat:35.1698, lng:136.8801, area:"名駅", addr:"名古屋駅地下街エスカ"},
+  {id:"yabaton-mitsui",  b:"矢場とん", n:"名古屋駅三井ビル北館店", lat:35.1727, lng:136.8862, area:"名駅", approx:true},
+  {id:"yabaton-centrair",b:"矢場とん", n:"中部国際空港店", lat:34.8584, lng:136.8052, area:"常滑市", approx:true},
+  {id:"yabaton-dome",    b:"矢場とん", n:"イオンモールナゴヤドーム前店", lat:35.1893, lng:136.9446, area:"東区", approx:true},
+  {id:"yamamotoya-okute",b:"山本屋", n:"大久手店", lat:35.1652, lng:136.9318, stamp:true, area:"千種区", addr:"名古屋市千種区大久手町5-9-2（桜通線吹上駅1番出口から徒歩3分）"},
+  {id:"yamamotoya-otsu", b:"山本屋", n:"桜通大津店", lat:35.1733, lng:136.9058, stamp:true, area:"中区", approx:true},
+  {id:"yamamotoya-jingumae", b:"山本屋", n:"神宮前店", lat:35.1252, lng:136.9108, stamp:true, area:"熱田", approx:true},
+  {id:"yamamotoya-ozone",b:"山本屋", n:"大曽根店", lat:35.1918, lng:136.9360, stamp:true, area:"東区・北区", approx:true},
+  {id:"wakashachiya-bino", b:"若鯱家", n:"BINO栄店", lat:35.1679, lng:136.9033, stamp:true, area:"栄", approx:true}
+];
+
+// スタンプラリーのスタンプ数（店舗ごと）。パネルのないイオンタウン千種（若鯱家）にも1個あり、全34個。
+const STAMPS = {
+  "aokis-ikeshita":1,"aokis-nakamurakoen":1,"aoyagi-kitte":3,"uya-yagoto":1,"uya-meieki":1,
+  "ebisato-nagaya":2,"kiyome-jingumae":3,"kohgen-nagoya":3,"sobajima-shop":1,"kagakukan":1,
+  "conv-oasis21":1,"conv-kanayama":1,"myokoen-honten":1,"myokoen-sunroad":1,"myokoen-sakaechika":1,
+  "mwt-meieki":1,"mwt-kanayama":1,"mekyopa":1,"nagomiya-esca":1,"yabaton-shop":2,
+  "yamamotoya-okute":1,"yamamotoya-otsu":1,"yamamotoya-jingumae":1,"yamamotoya-ozone":1,"wakashachiya-bino":1
+};
+
+// ノベルティカードの配布条件（事業者ごと）。記載のない事業者は配布なし。
+// except … その事業者のうち配布対象外の店舗id
+const NOVELTY = {
+  "名鉄観光サービス": {rule:"カウンター店舗で2,000円以上の利用で、会計1回につき1枚"},
+  "アオキーズ・ピザ": {rule:"テイクアウトで1,500円以上の注文で、会計1回につき1枚（デリバリーは対象外）"},
+  "青柳総本家":       {rule:"2,500円以上の購入で、会計1回につき1枚（コラボ商品の購入は不要）"},
+  "えびせんべいの里": {rule:"2,000円ごとにランダムで1枚、会計1回につき最大2枚"},
+  "きよめ餅総本家":   {rule:"2,000円以上の購入で、会計1回につき1枚（コラボ商品の購入は不要）"},
+  "香源":             {rule:"コラボ商品を含む2,000円以上の購入で、会計1回につき1枚"},
+  "側島製罐":         {rule:"コラボ缶1点の購入につき1枚"},
+  "ひつまぶし う家":  {rule:"メニュー2,000円以上の注文で、会計1回につき1枚（会計時に申し出）"},
+  "妙香園":           {rule:"2,000円ごとに全4種からランダムで1枚", extra:"MYOKOEN TEA STORE（サカエチカ・あつたnagAya）でのイートイン／テイクアウトは対象外"},
+  "矢場とん":         {rule:"対象店舗で2,000円以上の利用で、会計1回につき全3種からランダムで1枚"},
+  "山本屋":           {rule:"2,000円以上の利用で、会計1回につき1枚（店舗ごとに絵柄が異なる）"},
+  "若鯱家":           {rule:"2,000円以上の利用で、会計1回につき1枚"}
+};
+const NOVELTY_EXCEPT = ["myokoen-nagaya"]; // あつたnagAya店はTEA STOREの利用が対象外のため、店舗単位では「要確認」扱い
+
+SPOTS.forEach(s => {
+  s.stamps = STAMPS[s.id] || 0;
+  s.stamp = s.stamps > 0;
+  s.nov = NOVELTY[s.b] || null;
+  if (!s.chara && BRAND_CHARA[s.b]) { s.chara = BRAND_CHARA[s.b]; s.charaFromBrand = true; }
+  if (s.chara) {
+    s.charas = Array.isArray(s.chara) ? s.chara : String(s.chara).split('、');
+    s.chara = s.charas.join('、');
+  }
+});
+
+/* =====================================================================
+   共通の見た目
+   ===================================================================== */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// ピン・一覧用：店舗画像 → 事業者サムネイル（顔のあたりを正方形に切り抜いたもの）→ 事業者キービジュアル
+const imgCandidates = s => [s.img, IMAGE_DIR + s.id + IMAGE_EXT, BRAND_IMG[s.b] && (IMAGE_DIR + 'brand/thumb/' + BRAND_IMG[s.b] + IMAGE_EXT), BRAND_IMG[s.b] && (IMAGE_DIR + 'brand/' + BRAND_IMG[s.b] + IMAGE_EXT)].filter(Boolean);
+// 吹き出し用：店舗画像 → 事業者キービジュアル（横長のまま全体を表示）
+const heroCandidates = s => [s.img, IMAGE_DIR + s.id + IMAGE_EXT, BRAND_IMG[s.b] && (IMAGE_DIR + 'brand/' + BRAND_IMG[s.b] + IMAGE_EXT)].filter(Boolean);
+const imgOf = s => s.imgSrc;
+const gmURL = s => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(s.b + ' ' + s.n + (s.b==="側島製罐"?' 大治町':' 名古屋'));
+const initial = s => s.b.replace(/^(ひつまぶし |名古屋観光|FUJI)/,'').charAt(0);
+
+// 店舗画像 → 事業者画像 の順に探し、見つかった方を s.imgSrc に入れる（どちらも無ければ色付きの頭文字で表示）
+const loadable = src => new Promise(res => { const im = new Image(); im.onload = () => res(true); im.onerror = () => res(false); im.src = src; });
+const probed = {};
+async function firstLoadable(list){
+  for (const src of list) {
+    if (!(src in probed)) probed[src] = loadable(src);
+    if (await probed[src]) return src;
+  }
+  return null;
+}
+function probeImages(){
+  const qs = new URLSearchParams(location.search).get('images');
+  if (qs === '0' || (qs !== '1' && !USE_IMAGES)) { SPOTS.forEach(s => { s.imgSrc = s.heroSrc = null; s.hasImg = false; }); return Promise.resolve(); }
+  return Promise.all(SPOTS.map(async s => {
+    s.imgSrc = await firstLoadable(imgCandidates(s));
+    s.heroSrc = await firstLoadable(heroCandidates(s));
+    s.hasImg = !!s.imgSrc;
+  }));
+}
+
+function markerHTML(s){
+  const c = BRANDS[s.b];
+  if (!s.hasImg && s.chara) {
+    return `<div class="mk lbl" title="${esc(s.b+' '+s.n+' / '+s.chara)}">
+      <div class="pill" style="background:${c}">${s.stamp ? '<span class="pstar">★</span>' : ''}${esc(s.charas[0])}${s.charas.length > 1 ? `<span class="more">+${s.charas.length - 1}</span>` : ''}</div>
+      <div class="tail" style="border-top-color:${c}"></div>
+    </div>`;
+  }
+  const inner = s.hasImg ? `<img src="${esc(imgOf(s))}" alt="">` : `<div class="fb" style="background:${c}">${esc(initial(s))}</div>`;
+  return `<div class="mk" title="${esc(s.b+' '+s.n)}">
+    <div class="ring" style="border-color:${c}">${inner}</div>
+    <div class="tail" style="border-top-color:${c}"></div>
+    ${s.stamp ? '<div class="star">★</div>' : ''}
+  </div>`;
+}
+
+function popupHTML(s){
+  const tags = (s.stamp?'<span class="tag stamp">スタンプラリー対象</span>':'') + (s.small?'<span class="tag small">小パネル</span>':'');
+  const bnote = BRAND_NOTES[s.b] && !s.note ? `<div class="note">${esc(BRAND_NOTES[s.b])}</div>` : '';
+  return `<div class="pp">
+    ${s.heroSrc ? `<img class="hero" src="${esc(s.heroSrc)}" alt="${esc(s.chara||'')}">` : ''}
+    ${s.chara ? `<div class="br">${s.charaFromBrand ? 'コラボキャラ' : 'パネル'}：${esc(s.chara)}</div>` : ''}
+    <h3>${esc(s.n)}</h3>
+    <div class="br">${esc(s.b)}　/　${esc(s.area)}</div>
+    <div class="tags">${tags}</div>
+    ${s.addr ? `<div class="addr">📍 ${esc(s.addr)}</div>` : ''}
+    ${s.note ? `<div class="note">${esc(s.note)}</div>` : bnote}
+    ${s.stamps ? `<div class="addr">🔖 スタンプ ${s.stamps}個</div>` : ''}
+    ${s.nov ? `<div class="nov"><b>🎴 ノベルティカード</b><br>${esc(s.nov.rule)}${s.nov.extra?`<br><span class="br">${esc(s.nov.extra)}</span>`:''}${NOVELTY_EXCEPT.includes(s.id)?'<br><span class="br">※この店舗はTEA STOREの利用が対象外。配布条件は店頭で確認を</span>':''}<br><span class="br">数量限定・なくなり次第終了</span></div>` : '<div class="br">ノベルティカードの配布なし</div>'}
+    ${s.approx ? '<div class="br">※ピンはエリアからの推定位置です</div>' : ''}
+    <a class="gm" href="${gmURL(s)}" target="_blank" rel="noopener">Googleマップで開く ↗</a>
+  </div>`;
+}
+
+/* =====================================================================
+   地図エンジン（Google Maps / Leaflet）
+   どちらも show(s, on) / focus(s) / fit() を持つ
+   ===================================================================== */
+let ENGINE = null;
+
+function loadScript(src){
+  return new Promise((res, rej) => { const t = document.createElement('script'); t.src = src; t.async = true; t.onload = res; t.onerror = rej; document.head.appendChild(t); });
+}
+function loadCSS(href){ const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; document.head.appendChild(l); }
+
+async function googleEngine(){
+  await new Promise((res, rej) => {
+    window.__gmReady = res;
+    loadScript(`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&v=weekly&libraries=marker&language=ja&region=JP&callback=__gmReady`).catch(rej);
+  });
+  const map = new google.maps.Map(document.getElementById('map'), {
+    center:{lat:35.155,lng:136.905}, zoom:12, mapId:GOOGLE_MAP_ID,
+    mapTypeControl:false, streetViewControl:false, fullscreenControl:true, clickableIcons:false
+  });
+  const info = new google.maps.InfoWindow();
+  SPOTS.forEach(s => {
+    const wrap = document.createElement('div'); wrap.innerHTML = markerHTML(s);
+    s.gm = new google.maps.marker.AdvancedMarkerElement({ position:{lat:s.lat,lng:s.lng}, content:wrap.firstElementChild, title:s.b+' '+s.n, zIndex:s.stamp?2:1 });
+    s.gm.addListener('click', () => { info.setContent(popupHTML(s)); info.open({map, anchor:s.gm}); });
+  });
+  return {
+    show(s, on){ s.gm.map = on ? map : null; },
+    focus(s){ map.panTo({lat:s.lat,lng:s.lng}); if (map.getZoom() < 16) map.setZoom(16); info.setContent(popupHTML(s)); info.open({map, anchor:s.gm}); },
+    fit(pts){ const b = new google.maps.LatLngBounds(); pts.forEach(s => b.extend({lat:s.lat,lng:s.lng})); map.fitBounds(b, 40); },
+    resize(){}
+  };
+}
+
+async function leafletEngine(){
+  loadCSS('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css');
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js');
+  const map = L.map('map').setView([35.155,136.905], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+  SPOTS.forEach(s => {
+    const icon = L.divIcon({className:'', html:markerHTML(s), iconSize:[48,56], iconAnchor:[24,56], popupAnchor:[0,-52]});
+    s.lm = L.marker([s.lat,s.lng], {icon, zIndexOffset:s.stamp?100:0}).bindPopup(popupHTML(s), {maxWidth:280});
+  });
+  const banner = document.createElement('div'); banner.className = 'banner';
+  banner.textContent = 'OpenStreetMapで表示中（APIキーを設定するとGoogleマップになります）';
+  document.getElementById('mapwrap').appendChild(banner); setTimeout(()=>banner.remove(), 6000);
+  return {
+    show(s, on){ on ? s.lm.addTo(map) : s.lm.remove(); },
+    focus(s){ map.flyTo([s.lat,s.lng], Math.max(map.getZoom(),16), {duration:.6}); setTimeout(()=>s.lm.openPopup(), 650); },
+    fit(pts){ map.fitBounds(pts.map(s=>[s.lat,s.lng]), {padding:[40,40]}); },
+    resize(){ map.invalidateSize(); }
+  };
+}
+
+/* =====================================================================
+   一覧とフィルタ
+   ===================================================================== */
+const active = new Set(Object.keys(BRANDS));
+const q = document.getElementById('q'), stampOnly = document.getElementById('stampOnly'), novOnly = document.getElementById('novOnly');
+novOnly.addEventListener('change', render);
+const listEl = document.getElementById('list'), countEl = document.getElementById('count');
+
+Object.entries(BRANDS).forEach(([b, c]) => {
+  const n = SPOTS.filter(s => s.b === b).length;
+  const el = document.createElement('button');
+  el.className = 'chip'; el.dataset.b = b; el.setAttribute('aria-pressed','true');
+  el.innerHTML = `<span class="dot" style="background:${c}"></span>${esc(b)} <small>${n}</small>`;
+  el.onclick = () => { active.has(b) ? active.delete(b) : active.add(b); render(); };
+  document.getElementById('chips').appendChild(el);
+});
+q.addEventListener('input', render);
+stampOnly.addEventListener('change', render);
+document.getElementById('allOn').onclick = () => { Object.keys(BRANDS).forEach(b => active.add(b)); render(); };
+document.getElementById('allOff').onclick = () => { active.clear(); render(); };
+
+function render(){
+  if (!ENGINE) return;
+  const kw = q.value.trim().toLowerCase();
+  document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', active.has(c.dataset.b)));
+  listEl.innerHTML = '';
+  let shown = 0;
+  SPOTS.forEach(s => {
+    const on = active.has(s.b) && (!stampOnly.checked || s.stamp) && (!novOnly.checked || s.nov) && (!kw || (s.b+s.n+s.area+(s.addr||'')+(s.chara||'')).toLowerCase().includes(kw));
+    ENGINE.show(s, on);
+    if (!on) return;
+    shown++;
+    const c = BRANDS[s.b];
+    const li = document.createElement('li');
+    li.innerHTML = `<div class="lthumb" style="border-color:${c};${s.hasImg?`background-image:url('${esc(imgOf(s))}')`:`background:${c}`}">${s.hasImg?'':esc(initial(s))}</div>
+      <div><div class="nm">${esc(s.n)}</div><div class="br">${esc(s.b)}・${esc(s.area)}${s.chara?'・'+esc(s.chara):''}</div>
+      <div class="tags">${s.stamp?`<span class="tag stamp">スタンプ×${s.stamps}</span>`:''}${s.nov?'<span class="tag nov">カード配布</span>':''}${s.small?'<span class="tag small">小パネル</span>':''}</div></div>`;
+    li.onclick = () => {
+      document.querySelectorAll('ul.list li.active').forEach(x => x.classList.remove('active'));
+      li.classList.add('active'); showOfficial(false); ENGINE.focus(s);
+      if (window.innerWidth <= 760) document.getElementById('mapwrap').scrollIntoView({behavior:'smooth'});
+    };
+    listEl.appendChild(li);
+  });
+  countEl.textContent = `${shown} / ${SPOTS.length} か所を表示中（★＝スタンプラリー対象）`;
+}
+
+/* 地図の切り替え：自前のサムネイル付きマップ ⇔ 公式Googleマイマップ（iframe埋め込み） */
+const mapwrap = document.getElementById('mapwrap'), tabOwn = document.getElementById('tabOwn'), tabOfficial = document.getElementById('tabOfficial');
+function showOfficial(on){
+  if (on && !document.getElementById('mymap')) {
+    const f = document.createElement('iframe');
+    f.id = 'mymap'; f.title = '公式Googleマイマップ'; f.loading = 'lazy';
+    f.src = 'https://www.google.com/maps/d/embed?mid=' + encodeURIComponent(OFFICIAL_MYMAP_MID) + '&hl=ja';
+    mapwrap.insertBefore(f, mapwrap.querySelector('.mapTabs'));
+  }
+  mapwrap.classList.toggle('official', on);
+  tabOwn.setAttribute('aria-selected', !on); tabOfficial.setAttribute('aria-selected', on);
+  if (!on && ENGINE) ENGINE.resize();
+}
+tabOwn.onclick = () => showOfficial(false);
+function syncTabLabel(){ tabOwn.textContent = SPOTS.some(s => s.hasImg) ? 'サムネイル付きマップ' : 'キャラクターマップ'; }
+tabOfficial.onclick = () => showOfficial(true);
+
+function setHeaderHeight(){
+  document.documentElement.style.setProperty('--hh', document.getElementById('hdr').offsetHeight + 'px');
+  ENGINE && ENGINE.resize();
+}
+window.addEventListener('resize', setHeaderHeight);
+
+(async () => {
+  setHeaderHeight();
+  await probeImages();
+  syncTabLabel();
+  try {
+    ENGINE = GOOGLE_MAPS_API_KEY ? await googleEngine() : await leafletEngine();
+  } catch (e) {
+    console.warn('Google Maps の読み込みに失敗。OpenStreetMap に切り替えます', e);
+    try { ENGINE = await leafletEngine(); }
+    catch (e2) {
+      // 地図が読み込めなくても一覧とGoogleマップへのリンクは使えるようにする
+      document.getElementById('map').innerHTML = '<div style="padding:20px;font-size:13px;color:#6b6075">地図を読み込めませんでした。一覧から各店の「Googleマップで開く」をご利用ください。</div>';
+      ENGINE = {show(){}, focus(){}, fit(){}, resize(){}};
+    }
+  }
+  render();
+  ENGINE.fit(SPOTS.filter(s => s.lat > 35)); // 空港を除いて市内にフィット
+  setHeaderHeight();
+})();
+</script>
+</body>
+</html>

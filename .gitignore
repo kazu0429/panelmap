@@ -1,0 +1,4 @@
+# 参考用の公式画像（地図では使わない・17MB）
+images/official/
+.DS_Store
+config.local.js
