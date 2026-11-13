@@ -2,13 +2,14 @@
 # Cloudflare Pages に直接アップロードする。
 #   sh scripts/deploy.sh
 # 初回だけ先に `npx wrangler login` でログインしておく。
-# APIキーは config.local.js から読み、アップロード用のコピー（dist/）にだけ書き込む。
+# Google の APIキーを使う場合は config.local.js から読み、アップロード用のコピー（dist/）にだけ書き込む。
 set -eu
 cd "$(dirname "$0")/.."
 
 PROJECT=panelmap
-KEY=$(sed -n 's/.*GOOGLE_MAPS_API_KEY: *"\([^"]*\)".*/\1/p' config.local.js)
-[ -n "$KEY" ] || { echo "config.local.js にキーがありません"; exit 1; }
+# Google マップを使うとき（MAP_ENGINE="google"）だけキーが要る。MapLibre なら無くてよい
+KEY=""
+[ -f config.local.js ] && KEY=$(sed -n 's/.*GOOGLE_MAPS_API_KEY: *"\([^"]*\)".*/\1/p' config.local.js)
 
 rm -rf dist && mkdir -p dist/images
 sed "s/__GOOGLE_MAPS_API_KEY__/$KEY/g" index.html > dist/index.html

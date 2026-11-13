@@ -72,6 +72,8 @@
   .pp .note{font-size:11.5px;color:#8a3b00;background:#fff4e8;border-radius:6px;padding:5px 7px;margin:6px 0}
   .pp a.gm{display:inline-block;margin-top:6px;background:var(--pink);color:#fff;text-decoration:none;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:700}
   .leaflet-popup-content{margin:12px 14px}
+  .maplibregl-popup-content{padding:12px 14px;border-radius:12px;box-shadow:0 3px 14px rgba(0,0,0,.2)}
+  .maplibregl-popup-close-button{font-size:18px;padding:0 6px}
   .foot{font-size:11px;color:var(--sub);padding:10px 14px;border-top:1px solid var(--line);line-height:1.6}
   .foot a{color:var(--pink)}
   @media (max-width:760px){
@@ -123,7 +125,12 @@
 /* =====================================================================
    設定
    ===================================================================== */
-// Google Maps の APIキー。空のままだと OpenStreetMap（Leaflet）で表示します。
+// 使う地図："maplibre"（APIキー不要・既定）／"google"（下のAPIキーが必要）
+// どちらかが読み込めないときは OpenStreetMap（Leaflet）で表示します。
+const MAP_ENGINE = "maplibre";
+// MapLibre の地図デザイン（OpenStreetMap Japan の日本語ベクトルタイル）
+const MAPLIBRE_STYLE = "https://tile.openstreetmap.jp/styles/osm-bright-ja/style.json";
+// Google Maps の APIキー（MAP_ENGINE が "google" のときだけ使う）
 // キーはリポジトリに入れない。
 //  - 本番：Cloudflare Pages のビルドで "__GOOGLE_MAPS_API_KEY__" を環境変数の値に置き換える
 //  - ローカル：config.local.js（git管理外）に window.LOCAL_CONFIG = {GOOGLE_MAPS_API_KEY:"..."} を書く
@@ -367,6 +374,37 @@ async function googleEngine(){
   };
 }
 
+async function maplibreEngine(){
+  loadCSS('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css');
+  await loadScript('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js');
+  // WebGL が使えない端末ではここで例外になり、Leaflet に切り替わる
+  const map = new maplibregl.Map({ container:'map', style:MAPLIBRE_STYLE, center:[136.905,35.155], zoom:11.5, attributionControl:{compact:true} });
+  map.addControl(new maplibregl.NavigationControl({showCompass:false}), 'top-right');
+  map.addControl(new maplibregl.GeolocateControl({positionOptions:{enableHighAccuracy:true}, trackUserLocation:true}), 'top-right');
+  // ピンの先端（下端）から吹き出しを出す
+  const up = [0,-54], side = -28;
+  const offset = {'bottom':up,'bottom-left':up,'bottom-right':up,'top':[0,0],'top-left':[0,0],'top-right':[0,0],'left':[24,side],'right':[-24,side]};
+  let current = null;
+  SPOTS.forEach(s => {
+    // ピン自体の transform は MapLibre が位置合わせに使うので、拡大アニメ用の .mk は内側に入れる
+    const el = document.createElement('div');
+    el.innerHTML = markerHTML(s);
+    el.style.zIndex = s.stamp ? 2 : 1;
+    s.popup = new maplibregl.Popup({offset, maxWidth:'280px', focusAfterOpen:false}).setHTML(popupHTML(s));
+    s.popup.on('open', () => { if (current && current !== s.popup) current.remove(); current = s.popup; });
+    s.mm = new maplibregl.Marker({element:el, anchor:'bottom'}).setLngLat([s.lng,s.lat]).setPopup(s.popup);
+  });
+  return {
+    show(s, on){ on ? s.mm.addTo(map) : s.mm.remove(); },
+    focus(s){
+      map.flyTo({center:[s.lng,s.lat], zoom:Math.max(map.getZoom(),15.5), duration:600});
+      map.once('moveend', () => { if (!s.popup.isOpen()) s.mm.togglePopup(); });
+    },
+    fit(pts){ const b = new maplibregl.LngLatBounds(); pts.forEach(s => b.extend([s.lng,s.lat])); map.fitBounds(b, {padding:40, duration:0}); },
+    resize(){ map.resize(); }
+  };
+}
+
 async function leafletEngine(){
   loadCSS('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css');
   await loadScript('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js');
@@ -377,7 +415,7 @@ async function leafletEngine(){
     s.lm = L.marker([s.lat,s.lng], {icon, zIndexOffset:s.stamp?100:0}).bindPopup(popupHTML(s), {maxWidth:280});
   });
   const banner = document.createElement('div'); banner.className = 'banner';
-  banner.textContent = 'OpenStreetMapで表示中（APIキーを設定するとGoogleマップになります）';
+  banner.textContent = '簡易表示の地図で表示中です';
   document.getElementById('mapwrap').appendChild(banner); setTimeout(()=>banner.remove(), 6000);
   return {
     show(s, on){ on ? s.lm.addTo(map) : s.lm.remove(); },
@@ -462,9 +500,9 @@ window.addEventListener('resize', setHeaderHeight);
   await probeImages();
   syncTabLabel();
   try {
-    ENGINE = GOOGLE_MAPS_API_KEY ? await googleEngine() : await leafletEngine();
+    ENGINE = (MAP_ENGINE === 'google' && GOOGLE_MAPS_API_KEY) ? await googleEngine() : await maplibreEngine();
   } catch (e) {
-    console.warn('Google Maps の読み込みに失敗。OpenStreetMap に切り替えます', e);
+    console.warn('地図の読み込みに失敗。Leaflet（OpenStreetMap）に切り替えます', e);
     try { ENGINE = await leafletEngine(); }
     catch (e2) {
       // 地図が読み込めなくても一覧とGoogleマップへのリンクは使えるようにする
